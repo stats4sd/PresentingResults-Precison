@@ -84,26 +84,16 @@ max_den <- eventReactive(input$refresh|counter$n == 0, {
     return(min_den)
 })
 
-scale_min <- eventReactive(input$refresh|counter$n == 0, {
+min_se <- eventReactive(input$refresh|counter$n == 0, {
     data <- sampledata()
-    
-    if(input$SD < 10){
-        scale_min <- plyr::round_any(min(data$X), 5, f = floor)
-    }else{
-        scale_min <- plyr::round_any(min(data$X), 10, f = floor)
-    }
-    return(scale_min)
+    min_se <- 100 - (as.numeric(input$SD)/sqrt(as.numeric(input$n)))
+    return(min_se)
 })
 
-scale_max <- eventReactive(input$refresh|counter$n == 0, {
+max_se <- eventReactive(input$refresh|counter$n == 0, {
     data <- sampledata()
-    
-    if(input$SD < 10){
-        scale_max <- plyr::round_any(max(data$X), 5, f = ceiling)
-    }else{
-        scale_max <- plyr::round_any(max(data$X), 10, f = ceiling)
-    }
-    return(scale_max)
+    max_se <- 100 + (as.numeric(input$SD)/sqrt(as.numeric(input$n)))
+    return(max_se)
 })
 
 get_hist_dims <- eventReactive(input$refresh|counter$n == 0, {
@@ -117,19 +107,6 @@ get_hist_dims <- eventReactive(input$refresh|counter$n == 0, {
     return(hist)
 }
 )
-
-text_xmin <- eventReactive(input$refresh|counter$n == 0, {
-    data <- sampledata()
-    text_xmin <- 100 - (input$SD + (input$SD/8))
-    return(text_xmin)
-})
-
-text_xmax <- eventReactive(input$refresh|counter$n == 0, {
-    data <- sampledata()
-    text_xmax <- 100 + (input$SD + (input$SD/8))
-    return(text_xmax)
-})
-
 summary_data <- eventReactive(input$refresh|counter$n == 0,{
     data <- sampledata()
     
@@ -151,22 +128,46 @@ output$density <-
     
     ggplot(data = data, aes(x = X))+
         geom_density(colour = "palevioletred2")+
-        geom_vline(aes(xintercept = min_den()),
-                   linetype = "dashed")+
-        geom_vline(aes(xintercept = max_den()),
-                   linetype = "dashed")+
-        geom_text(aes(x = text_xmin(),
+        annotate(geom = "segment",
+                 y = 0,
+                 yend = max(density$y)*1.1,
+                 x = min_den(),
+                 xend = min_den(),
+                 linetype = "dashed")+
+        annotate(geom = "segment",
+                 y = 0,
+                 yend = max(density$y)*1.1,
+                 x = max_den(),
+                 xend = max_den(),
+                 linetype = "dashed")+
+        geom_text(aes(x = min_den()*0.97,
                       y = max(density$y)*1.1,
                       label = "-1 SD"),
                       size = 6)+
-        geom_text(aes(x = text_xmax(),
+        geom_text(aes(x = max_den()*1.03,
                       y = max(density$y*1.1),
                       label = "+1 SD"),
+                  size = 6)+
+        geom_vline(aes(xintercept = min_se()),
+                   linetype = "dotdash")+
+        geom_vline(aes(xintercept = max_se()),
+                   linetype = "dotdash")+
+        geom_text(aes(x = min_se()*0.97,
+                      y = max(density$y)*1.25,
+                      label = "-1 SE"),
+                  size = 6)+
+        geom_text(aes(x = max_se()*1.03,
+                      y = max(density$y*1.25),
+                      label = "+1 SE"),
                   size = 6)+
         stat_aud(geom = "area",
                  xlim = c(min_den(), max_den()),
                  alpha = 0.5,
                  fill = "palevioletred2")+
+        stat_aud(geom = "area",
+                 xlim = c(min_se(), max_se()),
+                 alpha = 0.5,
+                 fill = "skyblue2")+
         labs(title = "Density Plot",
              x = "Sampled Values",
              y = "Desnity")+
@@ -174,8 +175,8 @@ output$density <-
         theme(plot.title = element_text(size = 20),
               axis.title = element_text(size = 15),
               axis.text = element_text(siz = 12))+
-        scale_x_continuous(limits = c(scale_min(), scale_max()))
-    
+        scale_x_continuous(breaks = seq(50,150,10),
+                           limits = c(50,150))
 })
 
 output$summary <- renderTable({
@@ -193,15 +194,23 @@ output$histogram <- renderPlot({
     
     hist <- get_hist_dims()
     
-    p+geom_vline(aes(xintercept = min_den()),
-                                    linetype = "dashed")+
-        geom_vline(aes(xintercept = max_den()),
-                   linetype = "dashed")+
-        geom_text(aes(x = text_xmin(),
+    p+annotate(geom = "segment",
+               y = 0,
+               yend = max(hist$y)*1.1,
+               x = min_den(),
+               xend = min_den(),
+               linetype = "dashed")+
+        annotate(geom = "segment",
+                 y = 0,
+                 yend = max(hist$y)*1.1,
+                 x = max_den(),
+                 xend = max_den(),
+                 linetype = "dashed")+
+        geom_text(aes(x = min_den()*0.97,
                       y = max(hist$y)*1.1,
                       label = "-1 SD"),
                   size = 6)+
-        geom_text(aes(x = text_xmax(),
+        geom_text(aes(x = max_den()*1.03,
                       y = max(hist$y)*1.1,
                       label = "+1 SD"),
                   size = 6)+
@@ -212,6 +221,25 @@ output$histogram <- renderPlot({
                 fill = "palevioletred2",
             alpha = 0.5
         )+
+        geom_vline(aes(xintercept = min_se()),
+                   linetype = "dashed")+
+        geom_vline(aes(xintercept = max_se()),
+                   linetype = "dashed")+
+        geom_text(aes(x = min_se()*0.97,
+                      y = max(hist$y)*1.25,
+                      label = "-1 SE"),
+                  size = 6)+
+        geom_text(aes(x = max_se()*1.03,
+                      y = max(hist$y)*1.25,
+                      label = "+1 SE"),
+                  size = 6)+
+        annotate(geom = "rect", xmin = min_se(),
+                 xmax = max_se(),
+                 ymin = 0,
+                 ymax = max(hist$y),
+                 fill = "skyblue2",
+                 alpha = 0.5
+        )+
         labs(title = "Histogram",
              x = "Sampled Values",
              y = "Count")+
@@ -219,8 +247,8 @@ output$histogram <- renderPlot({
         theme(plot.title = element_text(size = 20),
               axis.title = element_text(size = 15),
               axis.text = element_text(siz = 12))+
-        scale_x_continuous(limits = c(scale_min(), scale_max()))
-    
+        scale_x_continuous(breaks = seq(50,150,10),
+                             limits = c(50,150))
 })
     
 }
