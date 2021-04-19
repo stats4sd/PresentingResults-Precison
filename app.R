@@ -42,11 +42,14 @@ ui <- fluidPage(
     sidebarLayout(
         sidebarPanel(
                      sliderInput(inputId = "n",
-                                 label = " Select Sample Size",
+                                 label = "Select Sample Size",
                                  min = 2, max = 100, value = 50, step = 1),
                      sliderInput(inputId = "SD",
                                  label = "Select Standard Deviation (SD)",
                                  min = 1, max = 25, value = 10, step = 1),
+                     selectInput(inputId = "scale",
+                                 label = "X - axis",
+                                 choices = c("Fixed (50 -150)", "Dynamic")),
                      actionButton(inputId = "refresh",
                                   label = "New Sample")),
         mainPanel(
@@ -126,40 +129,32 @@ output$density <-
     
     density <- density(data$X)
     
-    ggplot(data = data, aes(x = X))+
+    p <- ggplot(data = data, aes(x = X))+
         geom_density(colour = "palevioletred2")+
         annotate(geom = "segment",
                  y = 0,
-                 yend = max(density$y)*1.1,
+                 yend = max(density$y)*1.2,
                  x = min_den(),
                  xend = min_den(),
                  linetype = "dashed")+
         annotate(geom = "segment",
                  y = 0,
-                 yend = max(density$y)*1.1,
+                 yend = max(density$y)*1.2,
                  x = max_den(),
                  xend = max_den(),
                  linetype = "dashed")+
-        geom_text(aes(x = min_den()*0.97,
-                      y = max(density$y)*1.1,
-                      label = "-1 SD"),
-                      size = 6)+
-        geom_text(aes(x = max_den()*1.03,
-                      y = max(density$y*1.1),
-                      label = "+1 SD"),
-                  size = 6)+
-        geom_vline(aes(xintercept = min_se()),
-                   linetype = "dotdash")+
-        geom_vline(aes(xintercept = max_se()),
-                   linetype = "dotdash")+
-        geom_text(aes(x = min_se()*0.97,
-                      y = max(density$y)*1.25,
-                      label = "-1 SE"),
-                  size = 6)+
-        geom_text(aes(x = max_se()*1.03,
-                      y = max(density$y*1.25),
-                      label = "+1 SE"),
-                  size = 6)+
+        annotate(geom = "segment",
+                 y = 0,
+                 yend = max(density$y)*1.4,
+                 x = min_se(),
+                 xend = min_se(),
+                 linetype = "dotdash")+
+        annotate(geom = "segment",
+                 y = 0,
+                 yend = max(density$y)*1.4,
+                 x = max_se(),
+                 xend = max_se(),
+                 linetype = "dotdash")+
         stat_aud(geom = "area",
                  xlim = c(min_den(), max_den()),
                  alpha = 0.5,
@@ -174,9 +169,53 @@ output$density <-
         theme_minimal()+
         theme(plot.title = element_text(size = 20),
               axis.title = element_text(size = 15),
-              axis.text = element_text(siz = 12))+
-        scale_x_continuous(breaks = seq(50,150,10),
-                           limits = c(50,150))
+              axis.text = element_text(siz = 12))
+    
+    if(input$scale == "Dynamic"){
+        p+geom_text(aes(x = min_den(),
+                        y = max(density$y)*1.25,
+                        label = "-1 SD"),
+                    size = 6,
+                    angle = 0)+
+            geom_text(aes(x = max_den(),
+                          y = max(density$y*1.25),
+                          label = "+1 SD"),
+                      size = 6,
+                      angle = 0)+
+            geom_text(aes(x = min_se(),
+                          y = max(density$y)*1.45,
+                          label = "-1 SE"),
+                      size = 6,
+                      angle = 0)+
+            geom_text(aes(x = max_se(),
+                          y = max(density$y*1.45),
+                          label = "+1 SE"),
+                      size = 6,
+                      angle = 0)
+    }else{
+        p+geom_text(aes(x = min_den()*0.98,
+                         y = max(density$y)*1.25,
+                         label = "-1 SD"),
+                     size = 6,
+                     angle = 0)+
+            geom_text(aes(x = max_den()*1.02,
+                          y = max(density$y*1.25),
+                          label = "+1 SD"),
+                      size = 6,
+                      angle = 0)+
+            geom_text(aes(x = min_se()*0.98,
+                          y = max(density$y)*1.45,
+                          label = "-1 SE"),
+                      size = 6,
+                      angle = 0)+
+            geom_text(aes(x = max_se()*1.02,
+                          y = max(density$y*1.45),
+                          label = "+1 SE"),
+                      size = 6,
+                      angle = 0)+
+            scale_x_continuous(breaks = seq(50,150,10),
+                               limits = c(50,150))
+    }
 })
 
 output$summary <- renderTable({
@@ -194,26 +233,18 @@ output$histogram <- renderPlot({
     
     hist <- get_hist_dims()
     
-    p+annotate(geom = "segment",
+    p <- p+annotate(geom = "segment",
                y = 0,
-               yend = max(hist$y)*1.1,
+               yend = max(hist$y)*1.2,
                x = min_den(),
                xend = min_den(),
                linetype = "dashed")+
         annotate(geom = "segment",
                  y = 0,
-                 yend = max(hist$y)*1.1,
+                 yend = max(hist$y)*1.2,
                  x = max_den(),
                  xend = max_den(),
                  linetype = "dashed")+
-        geom_text(aes(x = min_den()*0.97,
-                      y = max(hist$y)*1.1,
-                      label = "-1 SD"),
-                  size = 6)+
-        geom_text(aes(x = max_den()*1.03,
-                      y = max(hist$y)*1.1,
-                      label = "+1 SD"),
-                  size = 6)+
         annotate(geom = "rect", xmin = min_den(),
                 xmax = max_den(),
                 ymin = 0,
@@ -221,18 +252,18 @@ output$histogram <- renderPlot({
                 fill = "palevioletred2",
             alpha = 0.5
         )+
-        geom_vline(aes(xintercept = min_se()),
-                   linetype = "dashed")+
-        geom_vline(aes(xintercept = max_se()),
-                   linetype = "dashed")+
-        geom_text(aes(x = min_se()*0.97,
-                      y = max(hist$y)*1.25,
-                      label = "-1 SE"),
-                  size = 6)+
-        geom_text(aes(x = max_se()*1.03,
-                      y = max(hist$y)*1.25,
-                      label = "+1 SE"),
-                  size = 6)+
+        annotate(geom = "segment",
+                 y = 0,
+                 yend = max(hist$y)*1.4,
+                 x = min_se(),
+                 xend = min_se(),
+                 linetype = "dotdash")+
+        annotate(geom = "segment",
+                 y = 0,
+                 yend = max(hist$y)*1.4,
+                 x = max_se(),
+                 xend = max_se(),
+                 linetype = "dotdash")+
         annotate(geom = "rect", xmin = min_se(),
                  xmax = max_se(),
                  ymin = 0,
@@ -246,9 +277,53 @@ output$histogram <- renderPlot({
         theme_minimal()+
         theme(plot.title = element_text(size = 20),
               axis.title = element_text(size = 15),
-              axis.text = element_text(siz = 12))+
-        scale_x_continuous(breaks = seq(50,150,10),
-                             limits = c(50,150))
+              axis.text = element_text(siz = 12))
+    
+    if(input$scale == "Dynamic"){
+        p+geom_text(aes(x = min_den(),
+                         y = max(hist$y)*1.25,
+                         label = "-1 SD"),
+                     size = 6,
+                    angle = 0)+
+            geom_text(aes(x = max_den(),
+                          y = max(hist$y)*1.25,
+                          label = "+1 SD"),
+                      size = 6,
+                      angle = 0)+
+            geom_text(aes(x = min_se(),
+                          y = max(hist$y)*1.45,
+                          label = "-1 SE"),
+                      size = 6,
+                      angle = 0)+
+            geom_text(aes(x = max_se(),
+                          y = max(hist$y)*1.45,
+                          label = "+1 SE"),
+                      size = 6,
+                      angle = 0)
+    }else{
+        p+geom_text(aes(x = min_den()*0.98,
+                         y = max(hist$y)*1.25,
+                         label = "-1 SD"),
+                     size = 6,
+                     angle = 0)+
+            geom_text(aes(x = max_den()*1.02,
+                          y = max(hist$y)*1.25,
+                          label = "+1 SD"),
+                      size = 6,
+                      angle = 0)+
+            geom_text(aes(x = min_se()*0.98,
+                          y = max(hist$y)*1.45,
+                          label = "-1 SE"),
+                      size = 6,
+                      angle = 0)+
+            geom_text(aes(x = max_se()*1.02,
+                          y = max(hist$y)*1.45,
+                          label = "+1 SE"),
+                      size = 6,
+                      angle = 0)+
+            scale_x_continuous(breaks = seq(50,150,10),
+                               limits = c(50,150))
+    }
 })
     
 }
