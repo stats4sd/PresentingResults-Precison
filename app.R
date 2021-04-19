@@ -7,8 +7,6 @@ library(doBy)
 library(DT)
 library(plyr)
 
-data <- data.frame(X = rnorm(100,100,25))
-
 StatAreaUnderDensity <- ggproto(
     "StatAreaUnderDensity", Stat,
     required_aes = "x",
@@ -34,6 +32,11 @@ get_hist <- function(p) {
     return(d)
 }
 
+se <- function(x,y){
+    se <- x/sqrt(y)
+    return(se)
+}
+
 ui <- fluidPage(
     
     sidebarLayout(
@@ -49,6 +52,7 @@ ui <- fluidPage(
         mainPanel(
             titlePanel("Precision - Sample sizes and the Standard Deviation"),
             plotOutput("density"),
+            tableOutput("summary"),
             plotOutput("histogram")
         )
     )
@@ -59,24 +63,28 @@ server <- function(input,output){
 counter <- reactiveValues(n = 0)
 observeEvent(input$refresh, {counter$n <- counter$n + 1})    
     
-sampledata <- eventReactive(input$refresh, {
+sampledata <- eventReactive(input$refresh|counter$n == 0, {
+    if(counter$n == 0){
+        data <- data.frame(X = rnorm(50,100,10))
+    }else{
     data <- data.frame(X = rnorm(n = as.numeric(input$n), mean = 100, sd = as.numeric(input$SD)))
+    }
     return(data)
 })
 
-min_den <- eventReactive(input$refresh, {
+min_den <- eventReactive(input$refresh|counter$n == 0, {
     data <- sampledata()
     min_den <- 100 - input$SD
     return(min_den)
 })
 
-max_den <- eventReactive(input$refresh, {
+max_den <- eventReactive(input$refresh|counter$n == 0, {
     data <- sampledata()
     min_den <- 100 + input$SD
     return(min_den)
 })
 
-scale_min <- eventReactive(input$refresh, {
+scale_min <- eventReactive(input$refresh|counter$n == 0, {
     data <- sampledata()
     
     if(input$SD < 10){
@@ -87,7 +95,7 @@ scale_min <- eventReactive(input$refresh, {
     return(scale_min)
 })
 
-scale_max <- eventReactive(input$refresh, {
+scale_max <- eventReactive(input$refresh|counter$n == 0, {
     data <- sampledata()
     
     if(input$SD < 10){
@@ -98,7 +106,7 @@ scale_max <- eventReactive(input$refresh, {
     return(scale_max)
 })
 
-get_hist_dims <- eventReactive(input$refresh, {
+get_hist_dims <- eventReactive(input$refresh|counter$n == 0, {
     data <- sampledata()
     
     p <- ggplot(data = data, aes(x = X))+
@@ -110,25 +118,32 @@ get_hist_dims <- eventReactive(input$refresh, {
 }
 )
 
-text_xmin <- eventReactive(input$refresh, {
+text_xmin <- eventReactive(input$refresh|counter$n == 0, {
     data <- sampledata()
     text_xmin <- 100 - (input$SD + (input$SD/8))
     return(text_xmin)
 })
 
-text_xmax <- eventReactive(input$refresh, {
+text_xmax <- eventReactive(input$refresh|counter$n == 0, {
     data <- sampledata()
     text_xmax <- 100 + (input$SD + (input$SD/8))
     return(text_xmax)
 })
 
+summary_data <- eventReactive(input$refresh|counter$n == 0,{
+    data <- sampledata()
+    
+    data2 <- data%>%
+        dplyr::summarise(n = n(),
+                  Mean = mean(X),
+                  "Standard Deviation" = sd(X))%>%
+        dplyr::mutate("Standard Error" = se(`Standard Deviation`,n))
+    
+    return(data2)
+})
+
 output$density <- 
     renderPlot({
-        
-    if(counter$n==0){
-        ggplot(data, aes(x = X))+
-            theme_minimal()
-    }else{
         
     data <- sampledata()
     
@@ -160,15 +175,16 @@ output$density <-
               axis.title = element_text(size = 15),
               axis.text = element_text(siz = 12))+
         scale_x_continuous(limits = c(scale_min(), scale_max()))
-    }
+    
+})
+
+output$summary <- renderTable({
+    data <- summary_data()
+    
+    data
 })
 
 output$histogram <- renderPlot({
-    
-    if(counter$n==0){
-        ggplot(data, aes(x = X))+
-            theme_minimal()
-    }else{
         
     data <- sampledata()
     
@@ -204,7 +220,7 @@ output$histogram <- renderPlot({
               axis.title = element_text(size = 15),
               axis.text = element_text(siz = 12))+
         scale_x_continuous(limits = c(scale_min(), scale_max()))
-    }
+    
 })
     
 }
