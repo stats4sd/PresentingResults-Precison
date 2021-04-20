@@ -54,9 +54,14 @@ ui <- fluidPage(
                                   label = "New Sample")),
         mainPanel(
             titlePanel("Precision - Sample sizes and the Standard Deviation"),
+            tabsetPanel(
+                tabPanel("Graphs",
             plotOutput("density"),
             tableOutput("summary"),
-            plotOutput("histogram")
+            plotOutput("histogram")),
+            tabPanel("Instructions",
+                     htmlOutput("notes"))
+            )
         )
     )
 )
@@ -77,25 +82,25 @@ sampledata <- eventReactive(input$refresh|counter$n == 0, {
 
 min_den <- eventReactive(input$refresh|counter$n == 0, {
     data <- sampledata()
-    min_den <- 100 - input$SD
+    min_den <- mean(data$X) - sd(data$X)
     return(min_den)
 })
 
 max_den <- eventReactive(input$refresh|counter$n == 0, {
     data <- sampledata()
-    min_den <- 100 + input$SD
+    min_den <- mean(data$X) + sd(data$X)
     return(min_den)
 })
 
 min_se <- eventReactive(input$refresh|counter$n == 0, {
     data <- sampledata()
-    min_se <- 100 - (as.numeric(input$SD)/sqrt(as.numeric(input$n)))
+    min_se <- mean(data$X) - (sd(data$X)/sqrt(as.numeric(input$n)))
     return(min_se)
 })
 
 max_se <- eventReactive(input$refresh|counter$n == 0, {
     data <- sampledata()
-    max_se <- 100 + (as.numeric(input$SD)/sqrt(as.numeric(input$n)))
+    max_se <- mean(data$X) + (sd(data$X)/sqrt(as.numeric(input$n)))
     return(max_se)
 })
 
@@ -176,45 +181,45 @@ output$density <-
                         y = max(density$y)*1.25,
                         label = "-1 SD"),
                     size = 6,
-                    angle = 0)+
+                    angle = 45)+
             geom_text(aes(x = max_den(),
                           y = max(density$y*1.25),
                           label = "+1 SD"),
                       size = 6,
-                      angle = 0)+
+                      angle = 45)+
             geom_text(aes(x = min_se(),
                           y = max(density$y)*1.45,
                           label = "-1 SE"),
                       size = 6,
-                      angle = 0)+
+                      angle = 45)+
             geom_text(aes(x = max_se(),
                           y = max(density$y*1.45),
                           label = "+1 SE"),
                       size = 6,
-                      angle = 0)
+                      angle = 45)
     }else{
         p+geom_text(aes(x = min_den()*0.98,
                          y = max(density$y)*1.25,
                          label = "-1 SD"),
                      size = 6,
-                     angle = 0)+
+                     angle = 45)+
             geom_text(aes(x = max_den()*1.02,
                           y = max(density$y*1.25),
                           label = "+1 SD"),
                       size = 6,
-                      angle = 0)+
+                      angle = 45)+
             geom_text(aes(x = min_se()*0.98,
                           y = max(density$y)*1.45,
                           label = "-1 SE"),
                       size = 6,
-                      angle = 0)+
+                      angle = 45)+
             geom_text(aes(x = max_se()*1.02,
                           y = max(density$y*1.45),
                           label = "+1 SE"),
                       size = 6,
-                      angle = 0)+
-            scale_x_continuous(breaks = seq(50,150,10),
-                               limits = c(50,150))
+                      angle = 45)+
+            scale_x_continuous(breaks = seq(20,180,10),
+                               limits = c(20,180))
     }
 })
 
@@ -284,46 +289,86 @@ output$histogram <- renderPlot({
                          y = max(hist$y)*1.25,
                          label = "-1 SD"),
                      size = 6,
-                    angle = 0)+
+                    angle = 45)+
             geom_text(aes(x = max_den(),
                           y = max(hist$y)*1.25,
                           label = "+1 SD"),
                       size = 6,
-                      angle = 0)+
+                      angle = 45)+
             geom_text(aes(x = min_se(),
                           y = max(hist$y)*1.45,
                           label = "-1 SE"),
                       size = 6,
-                      angle = 0)+
+                      angle = 45)+
             geom_text(aes(x = max_se(),
                           y = max(hist$y)*1.45,
                           label = "+1 SE"),
                       size = 6,
-                      angle = 0)
+                      angle = 45)
     }else{
         p+geom_text(aes(x = min_den()*0.98,
                          y = max(hist$y)*1.25,
                          label = "-1 SD"),
                      size = 6,
-                     angle = 0)+
+                     angle = 45)+
             geom_text(aes(x = max_den()*1.02,
                           y = max(hist$y)*1.25,
                           label = "+1 SD"),
                       size = 6,
-                      angle = 0)+
+                      angle = 45)+
             geom_text(aes(x = min_se()*0.98,
                           y = max(hist$y)*1.45,
                           label = "-1 SE"),
                       size = 6,
-                      angle = 0)+
+                      angle = 45)+
             geom_text(aes(x = max_se()*1.02,
                           y = max(hist$y)*1.45,
                           label = "+1 SE"),
                       size = 6,
-                      angle = 0)+
-            scale_x_continuous(breaks = seq(50,150,10),
-                               limits = c(50,150))
+                      angle = 45)+
+            scale_x_continuous(breaks = seq(20,180,10),
+                               limits = c(20,180))
     }
+})
+
+output$notes <- renderText({
+    shiny::HTML("<head>
+                 <title>Instructions</title>
+                 </head>
+                 <body>
+                 
+                 <p>This app is designed to help you explore how you can visualise the precision of estimates and data from a sample </p>
+                 
+                 <p>To show the graph, please click onto the 'Graphs' button above.</p>
+                 
+                 <p>Along the left side panel you will see 3 inputs for this app.</p>
+                 
+                 <ul>
+                 <li>Sample Size (n) - A scale of 2 - 100 determining the size of the random sample being drawn</li>
+                 <li>Standard Deviation - A scale from 1 - 25 to choose what the standard deviation of the randomly drawn sample should be.</li>
+                 <li>X-axis scale - A choice of how to present the x-axis scales of the graphs. Either fixed of 20 - 180 or a more dynamic option adapted to the actual range of the data</li>
+                 </ul>
+                 
+                 <p>Using these inputs you can customise a randomly drawn sample. This sample will assume a normal distribution with mean of 100 and you selected standard deviation.</p>
+                 
+                 <p>After selecting your inputs, please press 'New Sample' to create a new random sample which will update the graphs and table.</p>
+                 
+                 <p>There are 2 graphs on display. A density plot and a histogram. These show off the distribution of the randomly drawn numbers.</br>
+                 Using shaded sections they also show the areas corresponding to being within +/- 1 standard deviation and +/- 1 standard error.</p>
+                 
+                 <p>A table has also been included to show the estimates of the mean, standard deviation and standard error from the random sample.</p>
+                 
+                 <p>By playing around with this app, hopefully you should be able to notice a few things</p>
+                 
+                 <ul>
+                 <li>The standard deviation is always larger than the standard error</li>
+                 <li>THe standard deviation is unaffected by changes in the sample size but the standard error should decrease as the sample size increases</li>
+                 <li>A larger sample size should give you a more consistent estimate od the mean and therefore more precision</li>
+                 <li>The larger the standard deviation, the less precise your estimates are</li>
+                 <li>A larger sample size also gives you a more consistent estimate of the standard deviation as this is also something being estimated from the data as well as the mean</li>
+                 </ul>
+                 
+                 </body>")
 })
     
 }
